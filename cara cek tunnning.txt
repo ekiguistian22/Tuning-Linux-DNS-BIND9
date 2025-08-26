@@ -1,0 +1,3 @@
+sudo sysctl --system
+sysctl net.core.somaxconn
+sysctl fs.file-max
