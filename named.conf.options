@@ -1,35 +1,53 @@
 options {
     directory "/var/cache/bind";
 
-    // ==== Forwarding (lebih cepat karena cache global Cloudflare/Google) ====
+    listen-on port 53 { any; };
+    listen-on-v6 port 53 { any; };
+
+    // ==== Cache Settings ====
+    max-cache-size 5G;
+    max-cache-ttl 86400;
+    max-ncache-ttl 3600;
+
+    // ==== ACL ====
+    allow-query { any; };
+    allow-recursion { any; };
+    allow-query-cache { any; };
+
+    // ==== RPZ Filtering (TrustPositif) ====
+    response-policy {
+        zone "trustpositif";
+    };
+
+    // ==== Forwarders ====
     forwarders {
-        1.1.1.1;        // Cloudflare
+        1.1.1.1;    // Cloudflare
         1.0.0.1;
-        8.8.8.8;        // Google
+        8.8.8.8;    // Google
         8.8.4.4;
+        9.9.9.9;    // Quad9
     };
     forward only;
 
     // ==== Performance ====
-    max-cache-size 2048M;        // 2GB cache memory
-    max-cache-ttl 86400;         // simpan cache sampai 1 hari
-    max-ncache-ttl 3600;         // negative cache max 1 jam
-    minimal-responses yes;       // hanya kirim jawaban penting
+    recursion yes;
+    querylog no;
+    dnssec-validation no;
+    minimal-responses yes;
+    auth-nxdomain no;
+    request-ixfr yes;
 
-    // ==== Security / Overhead ====
-    dnssec-validation no;        // matikan DNSSEC (jika tidak wajib)
-    auth-nxdomain no;            // RFC compliance
-    recursion yes;               // aktifkan recursive resolver
-    allow-recursion { any; };
+    // ==== Client & Concurrency ====
+    recursive-clients 20000;
+    tcp-clients 10000;
+    tcp-listen-queue 4096;
 
-    // ==== Concurrency Handling ====
-    recursive-clients 20000;     // default 1000 → naikkan untuk 10Gbps
-    tcp-clients 10000;           // naikkan limit TCP clients
-    listen-on-v6 { any; };
-    listen-on port 53 { any; };
+    version "not currently available";
+};
 
-    // ==== Outgoing Queries ====
-    use-v4-udp-ports { range 1024 65535; };
-    use-v6-udp-ports { range 1024 65535; };
-    query-source address * port *;
+include "/etc/bind/rndc.key";
+
+controls {
+    inet 127.0.0.1 port 953
+        allow { 127.0.0.1; } keys { "rndc-key"; };
 };
