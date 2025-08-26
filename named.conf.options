@@ -1,0 +1,35 @@
+options {
+    directory "/var/cache/bind";
+
+    // ==== Forwarding (lebih cepat karena cache global Cloudflare/Google) ====
+    forwarders {
+        1.1.1.1;        // Cloudflare
+        1.0.0.1;
+        8.8.8.8;        // Google
+        8.8.4.4;
+    };
+    forward only;
+
+    // ==== Performance ====
+    max-cache-size 2048M;        // 2GB cache memory
+    max-cache-ttl 86400;         // simpan cache sampai 1 hari
+    max-ncache-ttl 3600;         // negative cache max 1 jam
+    minimal-responses yes;       // hanya kirim jawaban penting
+
+    // ==== Security / Overhead ====
+    dnssec-validation no;        // matikan DNSSEC (jika tidak wajib)
+    auth-nxdomain no;            // RFC compliance
+    recursion yes;               // aktifkan recursive resolver
+    allow-recursion { any; };
+
+    // ==== Concurrency Handling ====
+    recursive-clients 20000;     // default 1000 → naikkan untuk 10Gbps
+    tcp-clients 10000;           // naikkan limit TCP clients
+    listen-on-v6 { any; };
+    listen-on port 53 { any; };
+
+    // ==== Outgoing Queries ====
+    use-v4-udp-ports { range 1024 65535; };
+    use-v6-udp-ports { range 1024 65535; };
+    query-source address * port *;
+};
